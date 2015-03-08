@@ -11,10 +11,12 @@ class MainState
 
     public function new()
     {
-        _userID = getID();
+        //_userID = getID();
+        _userID = "7974z9_BezY-GAjqYja3Eg";
         _sublist = getSublist(_userID);
-        _videoList = getVideoList(_sublist);
-        //printMap(_sublist);
+        //_videoList = getVideoList(_sublist);
+        //Sys.println(_sublist.toString());
+        printMap(_sublist);
     }
 
     private function getID():String
@@ -31,26 +33,23 @@ class MainState
 
         for (i in 0...1000)
         {
-            var xml:Xml = Xml.parse(Http.requestUrl(
+            var fast:Fast = getFastFromUrl(
                 "http://gdata.youtube.com/feeds/api/users/" +
                 id + "/subscriptions?v=2&max-results=25&start-index=" +
-                Std.string(i * 25 + 1)));
-
+                Std.string(i * 25 + 1));
+            
             var newEntries:Int = 0;
-            for (i in xml.firstElement().elementsNamed("entry"))
+            for (entry in fast.nodes.entry)
             {
                 newEntries++;
 
                 var name:String = "";
                 var id:String = "";
-                for (j in i.elements())
+                for (yt_username in entry.nodes.yt_username) name = yt_username.att.display;
+                for (content in entry.nodes.content)
                 {
-                    if (j.nodeName == "yt:username") name = j.get("display");
-                    if (j.nodeName == "content")
-                    {
-                        if (j.get("src").indexOf("channel/") >= 0) id = j.get("src").split("channel/")[1];
-                        if (j.get("src").indexOf("users/") >= 0) id = j.get("src").split("users/")[1].split("/")[0];
-                    }
+                    if (content.att.src.indexOf("channel/") >= 0) id = content.att.src.split("channel/")[1];
+                    if (content.att.src.indexOf("users/") >= 0) id = content.att.src.split("users/")[1].split("/")[0];
                 }
 
                 sublist.set(name, id);
@@ -105,10 +104,18 @@ class MainState
 
     private function printMap(map:Map<String, String>):Void
     {
-        for (i in map.iterator())
+        for (i in map.keys())
         {
             Sys.println(i + " => " + map.get(i));
         }
+    }
+
+    private function getFastFromUrl(url:String):Fast
+    {
+        var string:String = Http.requestUrl(url);
+        string = string.split(":").join("_");
+        var xml:Xml = Xml.parse(string);
+        return new Fast(xml.firstElement());
     }
 
 }
