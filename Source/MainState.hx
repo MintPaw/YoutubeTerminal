@@ -14,9 +14,8 @@ class MainState
         //_userID = getID();
         _userID = "7974z9_BezY-GAjqYja3Eg";
         _sublist = getSublist(_userID);
-        //_videoList = getVideoList(_sublist);
-        //Sys.println(_sublist.toString());
-        printMap(_sublist);
+        _videoList = getVideoList(_sublist);
+        //printMap(_sublist);
     }
 
     private function getID():String
@@ -69,21 +68,19 @@ class MainState
         {
             var video:Video = {};
 
-            var xml:Xml = Xml.parse(Http.requestUrl(
+            var fast:Fast = getFastFromUrl(
                 "http://gdata.youtube.com/feeds/api/users/" +
                 sublist.get(sub) +
-                "/uploads?orderby=published&max-results=20"));
+                "/uploads?orderby=published&max-results=20");
 
-            var fast:Fast = new Fast(xml.firstElement());
-            
             for (entry in fast.nodes.entry)
             {
                 for (title in entry.nodes.title) video.title = title.innerData;
                 for (content in entry.nodes.content) video.description = content.innerData;
-                /*for (media:group in entry.nodes.media:group)
+                for (media_group in entry.nodes.media_group)
                 {
-                    for (yt-duration in media-group.yt-duration) video.duration = yt-duration.innerData;
-                }*/
+                    for (yt_duration in media_group.yt_duration) video.duration = yt_duration.innerData;
+                }
                 video.author = sub;
             }
         }
