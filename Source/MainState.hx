@@ -77,13 +77,20 @@ class MainState
             {
                 for (title in entry.nodes.title) video.title = title.innerData;
                 for (content in entry.nodes.content) video.description = content.innerData;
+                for (published in entry.nodes.published)
+                {
+                    var date:Date = Date.fromString(published.innerData.split("T").join(" ").split(".000Z").join(""));
+                    Sys.println(date.toString());
+                }
+                //2014-11-13T06:00:04.000Z
                 for (media_group in entry.nodes.media_group)
                 {
                     for (yt_duration in media_group.nodes.yt_duration) video.duration = yt_duration.att.seconds;
+                    for (media_player in media_group.nodes.media_player) video.url = "http://" + media_player.att.url.split("//")[1].split("&")[0];
                 }
                 video.author = sub;
 
-                Sys.print(video.title + " by: " + video.author + " [" + video.duration + "sec.]");
+                //Sys.println(video.title + " uploaded at: " + video.uploadTime);
             }
         }
 
@@ -124,6 +131,7 @@ typedef Video =
     ?title:String,
     ?author:String,
     ?url:String,
+    ?uploadTime:Int,
     ?duration:String,
     ?description:String
 }
