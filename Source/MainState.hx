@@ -79,9 +79,11 @@ class MainState
                 for (content in entry.nodes.content) video.description = content.innerData;
                 for (media_group in entry.nodes.media_group)
                 {
-                    for (yt_duration in media_group.yt_duration) video.duration = yt_duration.innerData;
+                    for (yt_duration in media_group.nodes.yt_duration) video.duration = yt_duration.att.seconds;
                 }
                 video.author = sub;
+
+                Sys.print(video.title + " by: " + video.author + " [" + video.duration + "sec.]");
             }
         }
 
