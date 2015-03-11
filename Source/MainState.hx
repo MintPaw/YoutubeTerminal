@@ -15,7 +15,12 @@ class MainState
         _userID = "7974z9_BezY-GAjqYja3Eg";
         _sublist = getSublist(_userID);
         _videoList = getVideoList(_sublist);
-        //printMap(_sublist);
+        
+        Sys.println("Videos: " + _videoList.length);
+        for (i in _videoList)
+        {
+            Sys.println(i.title + "at " + i.uploadTime);
+        }
     }
 
     private function getID():String
@@ -63,11 +68,9 @@ class MainState
     private function getVideoList(sublist:Map<String, String>):Array<Video>
     {
         var videos:Array<Video> = [];
-
+        
         for (sub in sublist.keys())
         {
-            var video:Video = {};
-
             var fast:Fast = getFastFromUrl(
                 "http://gdata.youtube.com/feeds/api/users/" +
                 sublist.get(sub) +
@@ -75,24 +78,33 @@ class MainState
 
             for (entry in fast.nodes.entry)
             {
-                for (title in entry.nodes.title) video.title = title.innerData;
-                for (content in entry.nodes.content) video.description = content.innerData;
-                for (published in entry.nodes.published)
+                var video:Video = {};
+                try
                 {
-                    var date:Date = Date.fromString(published.innerData.split("T").join(" ").split(".000Z").join(""));
-                    Sys.println(date.toString());
+                    for (title in entry.nodes.title) video.title = title.innerData;
+                    for (content in entry.nodes.content) video.description = content.innerData;
+                    for (published in entry.nodes.published)
+                    {
+                        var date:Date = Date.fromString(published.innerData.split("T").join(" ").split(".000Z").join(""));
+                        video.uploadTime = Math.round(date.getTime());
+                    }
+                    for (media_group in entry.nodes.media_group)
+                    {
+                        for (yt_duration in media_group.nodes.yt_duration) video.duration = yt_duration.att.seconds;
+                        for (media_player in media_group.nodes.media_player) video.url = "http://" + media_player.att.url.split("//")[1].split("&")[0];
+                    }
+                    video.author = sub;
+                    videos.push(video);
+                } catch (unknown:Dynamic) {
+                    continue;
                 }
-                //2014-11-13T06:00:04.000Z
-                for (media_group in entry.nodes.media_group)
-                {
-                    for (yt_duration in media_group.nodes.yt_duration) video.duration = yt_duration.att.seconds;
-                    for (media_player in media_group.nodes.media_player) video.url = "http://" + media_player.att.url.split("//")[1].split("&")[0];
-                }
-                video.author = sub;
-
-                //Sys.println(video.title + " uploaded at: " + video.uploadTime);
             }
         }
+
+        videos.sort(function (v1:Video, v2:Video):Int
+            {
+                return v1.uploadTime - v2.uploadTime;
+            });
 
         return videos;
     }
