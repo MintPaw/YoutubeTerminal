@@ -15,11 +15,11 @@ class MainState
         _userID = "7974z9_BezY-GAjqYja3Eg";
         _sublist = getSublist(_userID);
         _videoList = getVideoList(_sublist);
-        
+
         Sys.println("Videos: " + _videoList.length);
         for (i in _videoList)
         {
-            Sys.println(i.title + "at " + i.uploadTime);
+            Sys.println(i.title + " at " + i.uploadTime + "(" + i.date + ")");
         }
     }
 
@@ -86,7 +86,15 @@ class MainState
                     for (published in entry.nodes.published)
                     {
                         var date:Date = Date.fromString(published.innerData.split("T").join(" ").split(".000Z").join(""));
-                        video.uploadTime = Math.round(date.getTime());
+                        video.date = date.toString();
+                            
+                        video.uploadTime =
+                            (date.getFullYear() - 2005) * 31556926 +
+                            date.getMonth() * 2629743 +
+                            date.getDate() * 86400 +
+                            date.getHours() * 3600 +
+                            date.getMinutes() * 60 +
+                            date.getSeconds();
                     }
                     for (media_group in entry.nodes.media_group)
                     {
@@ -143,7 +151,8 @@ typedef Video =
     ?title:String,
     ?author:String,
     ?url:String,
-    ?uploadTime:Int,
+    ?date:String,
+    ?uploadTime:UInt,
     ?duration:String,
     ?description:String
 }
