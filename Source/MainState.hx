@@ -2,11 +2,12 @@ package;
 
 import haxe.Http;
 import haxe.xml.Fast;
+import mloader.Loader;
 
 class MainState
 {
     private var _sublist:Map<String, String>;
-    private var _videoList:Array<Video>;
+    private var _videoList:Array<Video> = [];
     private var _userID:String;
 
     public function new()
@@ -14,7 +15,8 @@ class MainState
         //_userID = getID();
         _userID = "7974z9_BezY-GAjqYja3Eg";
         _sublist = getSublist(_userID);
-        _videoList = getVideoList(_sublist);
+        getVideoList(_sublist);
+        orderVideoList();
 
         Sys.println("Videos: " + _videoList.length);
         for (i in _videoList)
@@ -65,56 +67,62 @@ class MainState
         return sublist;
     }
 
-    private function getVideoList(sublist:Map<String, String>):Array<Video>
+    private function getVideoList(sublist:Map<String, String>):Void
     {
-        var videos:Array<Video> = [];
-        
         for (sub in sublist.keys())
         {
-            var fast:Fast = getFastFromUrl(
+            var loader = new mloader.StringLoader(
                 "http://gdata.youtube.com/feeds/api/users/" +
                 sublist.get(sub) +
                 "/uploads?orderby=published&max-results=20");
-
-            for (entry in fast.nodes.entry)
-            {
-                var video:Video = {};
-                try
-                {
-                    for (title in entry.nodes.title) video.title = title.innerData;
-                    for (content in entry.nodes.content) video.description = content.innerData;
-                    for (published in entry.nodes.published)
-                    {
-                        var date:Date = Date.fromString(published.innerData.split("T").join(" ").split(".000Z").join(""));
-                        video.date = date.toString();
-                            
-                        video.uploadTime =
-                            (date.getFullYear() - 2005) * 31556926 +
-                            date.getMonth() * 2629743 +
-                            date.getDate() * 86400 +
-                            date.getHours() * 3600 +
-                            date.getMinutes() * 60 +
-                            date.getSeconds();
-                    }
-                    for (media_group in entry.nodes.media_group)
-                    {
-                        for (yt_duration in media_group.nodes.yt_duration) video.duration = yt_duration.att.seconds;
-                        for (media_player in media_group.nodes.media_player) video.url = "http://" + media_player.att.url.split("//")[1].split("&")[0];
-                    }
-                    video.author = sub;
-                    videos.push(video);
-                } catch (unknown:Dynamic) {
-                    continue;
-                }
-            }
+            loader.loaded.add(parseVideo);
+            loader.load();
         }
+    }
 
-        videos.sort(function (v1:Video, v2:Video):Int
+    private function orderVideoList():Void
+    {
+        _videoList.sort(function (v1:Video, v2:Video):Int
             {
                 return v1.uploadTime - v2.uploadTime;
             });
+    }
 
-        return videos;
+    private function parseVideo(event:LoaderEvent<String>):Void
+    {
+        if (event.type != Complete) return;
+        var fast:Fast = new Fast(Xml.parse(event.target.content).firstElement());
+        for (entry in fast.nodes.entry)
+        {
+            var video:Video = {};
+            try
+            {
+                for (title in entry.nodes.title) video.title = title.innerData;
+                for (content in entry.nodes.content) video.description = content.innerData;
+                for (published in entry.nodes.published)
+                {
+                    var date:Date = Date.fromString(published.innerData.split("T").join(" ").split(".000Z").join(""));
+                    video.date = date.toString();
+
+                    video.uploadTime =
+                        (date.getFullYear() - 2005) * 31556926 +
+                        date.getMonth() * 2629743 +
+                        date.getDate() * 86400 +
+                        date.getHours() * 3600 +
+                        date.getMinutes() * 60 +
+                        date.getSeconds();
+                }
+                for (media_group in entry.nodes.media_group)
+                {
+                    for (yt_duration in media_group.nodes.yt_duration) video.duration = yt_duration.att.seconds;
+                    for (media_player in media_group.nodes.media_player) video.url = "http://" + media_player.att.url.split("//")[1].split("&")[0];
+                }
+                video.author = entry.node.author.node.name.innerData;
+                _videoList.push(video);
+            } catch (unknown:Dynamic) {
+                continue;
+            }
+        }
     }
     
     private function countSublist(sublist:Map<String, String>):Int
